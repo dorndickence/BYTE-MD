@@ -300,30 +300,63 @@ const {
       }
     }
   );
-  smd({
-    pattern: "gpt4",
-    category: "ai",
-    desc: "Chat with GPT-4 AI model",
-    use: "<text>",
-    filename: __filename,
-  }, async (message, text, { cmdName }) => {
-    if (!text) return message.reply(`*_Please provide a query_*\n*_Example ${prefix + cmdName} What is the meaning of life?_*`);
   
-    try {
-      const apiUrl = `https://ultimetron.guruapi.tech/gpt4?prompt=${encodeURIComponent(text)}`;
-      const response = await fetch(apiUrl);
-      const data = await response.json();
-  
-      if (!data.result.success) return message.send("*There's a problem, try again later!*");
-  
-      const { reply } = data.result;
-      const astro = "ᴀsᴛᴀ ɢᴘᴛ𝟺\n";
-      const tbl = "```";
-      await send(message, `${astro}${tbl}${reply}${tbl}`);
-    } catch (error) {
-      return await message.error(`${error}\n\n command: ${cmdName}`, error, `*_An error occurred while processing your request_*`);
-    }
-  });
+const { MongoClient } = require('mongodb');
+
+const uri = 'your_mongodb_connection_uri'; // Replace with your MongoDB connection URI
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+// Connect to MongoDB
+async function connectDB() {
+  try {
+    await client.connect();
+    console.log('Connected to MongoDB');
+  } catch (err) {
+    console.error('Error connecting to MongoDB:', err);
+  }
+}
+connectDB();
+
+// Function to fetch reply from LlaMA 7B endpoint
+async function fetchReply(text) {
+  try {
+    const apiUrl = `https://worker-dry-cloud-dorn.dorndickence.workers.dev/?prompt=${encodeURIComponent(text)}`;
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+    return data.reply;
+  } catch (error) {
+    throw new Error(`Error fetching reply: ${error}`);
+  }
+}
+
+// Message handler
+smd({
+  pattern: "gpt4",
+  category: "ai",
+  desc: "Chat with GPT-4 AI model",
+  use: "<text>",
+  filename: __filename,
+}, async (message, text, { cmdName, isGroup }) => {
+  if (!text) return message.reply(`*_Please provide a query_*\n*_Example ${isGroup ? `${prefix + cmdName}` : cmdName} What is the meaning of life?_*`);
+
+  try {
+    // Fetch reply from LlaMA 7B endpoint
+    const reply = await fetchReply(text);
+
+    // Store previous message in MongoDB
+    const db = client.db('your_database_name');
+    const messagesCollection = db.collection('messages');
+    await messagesCollection.insertOne({ userId: message.sender, message: text });
+
+    // Send reply
+    const astro = "ᴀsᴛᴀ ɢᴘᴛ𝟺\n";
+    const tbl = "```";
+    await send(message, `${astro}${tbl}${reply}${tbl}`);
+  } catch (error) {
+    await message.error(`${error}\n\n command: ${cmdName}`, error, `*_An error occurred while processing your request_*`);
+  }
+});
+
   
   smd({
     pattern: "gemini",
