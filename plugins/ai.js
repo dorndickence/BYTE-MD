@@ -301,80 +301,33 @@ const {
     }
   );
   
-/ Function to fetch reply from LlaMA 7B endpoint
-async function fetchReply(text) {
-  try {
-    const apiUrl = `https://worker-dry-cloud-dorn.dorndickence.workers.dev/?prompt=${encodeURIComponent(text)}`;
-    const response = await axios.get(apiUrl);
-    return response.data.reply;
-  } catch (error) {
-    throw new Error(`Error fetching reply: ${error}`);
-  }
-}
 
-// Message handler for group messages
+
 smd({
-  pattern: "gpt4",
-  category: "ai",
-  desc: "Chat with GPT-4 AI model",
-  use: "<text>",
-  filename: __filename,
-}, async (message, text, { cmdName, isGroup }) => {
-  // If in group and no prefix, ignore the message
-  if (isGroup && !text.startsWith(prefix + cmdName)) {
-    return;
-  }
-
-  // Remove prefix from text in groups
-  if (isGroup) {
-    text = text.slice((prefix + cmdName).length).trim();
-  }
-
-  if (!text) {
-    return message.reply(`*_Please provide a query_*\n*_Example: ${prefix + cmdName} What is the meaning of life?_*`);
-  }
-
-  try {
-    // Fetch reply from LlaMA 7B endpoint
-    const reply = await fetchReply(text);
-
-    // Send reply
-    const astro = "ᴀsᴛᴀ ɢᴘᴛ𝟺\n";
-    const tbl = "```";
-    await send(message, `${astro}${tbl}${reply}${tbl}`);
-  } catch (error) {
-    await message.error(`${error}\n\n command: ${cmdName}`, error, `*_An error occurred while processing your request_*`);
-  }
-});
-
-// Auto-reply to any private message
-smd({
-  category: "auto",
-  desc: "Auto-reply to private messages",
-  filename: __filename,
-}, async (message) => {
-  if (message.isGroup) {
-    return;
-  }
-
-  const text = message.text;
-
-  if (!text) {
-    return message.reply(`*_Please provide a query_*`);
-  }
-
-  try {
-    // Fetch reply from LlaMA 7B endpoint
-    const reply = await fetchReply(text);
-
-    // Send reply
-    const astro = "ᴀsᴛᴀ ɢᴘᴛ𝟺\n";
-    const tbl = "```";
-    await send(message, `${astro}${tbl}${reply}${tbl}`);
-  } catch (error) {
-    await message.error(`${error}`, error, `*_An error occurred while processing your request_*`);
-  }
-});
+    pattern: "gpt4",
+    category: "ai",
+    desc: "Chat with GPT-4 AI model",
+    use: "<text>",
+    filename: __filename,
+  }, async (message, text, { cmdName }) => {
+    if (!text) return message.reply(`*_Please provide a query_*\n*_Example ${prefix + cmdName} What is the meaning of life?_*`);
+  
+    try {
+      const apiUrl = `https://worker-dry-cloud-dorn.dorndickence.workers.dev/?prompt=${encodeURIComponent(text)}`;
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+  
+      if (!data.result.success) return message.send("*There's a problem, try again later!*");
+  
+      const { reply } = data.result;
+      const astro = "ᴀsᴛᴀ ɢᴘᴛ𝟺\n";
+      const tbl = "```";
+      await send(message, `${astro}${tbl}${reply}${tbl}`);
+    } catch (error) {
+      return await message.error(`${error}\n\n command: ${cmdName}`, error, `*_An error occurred while processing your request_*`);
+    }
+  });
+  
   
   smd({
     pattern: "gemini",
