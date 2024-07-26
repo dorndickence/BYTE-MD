@@ -303,7 +303,7 @@ const {
   
 const { MongoClient } = require('mongodb');
 
-const uri = 'your_mongodb_connection_uri'; // Replace with your MongoDB connection URI
+const uri = 'mongodb+srv://dornbots:5s3Tcs9RdPqLTmij@dornbot.clhjn5v.mongodb.net/?retryWrites=true&w=majority'; // Replace with your MongoDB connection URI
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 // Connect to MongoDB
@@ -344,7 +344,7 @@ smd({
     const reply = await fetchReply(text);
 
     // Store previous message in MongoDB
-    const db = client.db('your_database_name');
+    const db = client.db('DornguruChats');
     const messagesCollection = db.collection('messages');
     await messagesCollection.insertOne({ userId: message.sender, message: text });
 
