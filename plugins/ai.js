@@ -302,7 +302,7 @@ const {
   );
   
 const { MongoClient } = require('mongodb');
-
+const { smd, send } = require('@whiskeysockets/baileys');
 const uri = 'mongodb+srv://dornbots:5s3Tcs9RdPqLTmij@dornbot.clhjn5v.mongodb.net/?retryWrites=true&w=majority'; // Replace with your MongoDB connection URI
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
