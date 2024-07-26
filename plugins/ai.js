@@ -304,7 +304,7 @@ const {
 
 
 smd({
-    pattern: "bot",
+    pattern: "gpt4",
     category: "ai",
     desc: "Chat with GPT-4 AI model",
     use: "<text>",
@@ -313,7 +313,7 @@ smd({
     if (!text) return message.reply(`*_Please provide a query_*\n*_Example ${prefix + cmdName} What is the meaning of life?_*`);
   
     try {
-      const apiUrl = `https://ultimetron.guruapi.tech/gpt4?prompt=${encodeURIComponent(text)}`;
+      const apiUrl = `https://worker-dry-cloud-dorn.dorndickence.workers.dev/?prompt=${encodeURIComponent(text)}`;
       const response = await fetch(apiUrl);
       const data = await response.json();
   
