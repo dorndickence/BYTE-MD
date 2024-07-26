@@ -301,35 +301,18 @@ const {
     }
   );
   
-const { MongoClient } = require('mongodb');
-const { send } = require('@whiskeysockets/baileys');
-const uri = 'mongodb+srv://dornbots:5s3Tcs9RdPqLTmij@dornbot.clhjn5v.mongodb.net/?retryWrites=true&w=majority'; // Replace with your MongoDB connection URI
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-
-// Connect to MongoDB
-async function connectDB() {
-  try {
-    await client.connect();
-    console.log('Connected to MongoDB');
-  } catch (err) {
-    console.error('Error connecting to MongoDB:', err);
-  }
-}
-connectDB();
-
-// Function to fetch reply from LlaMA 7B endpoint
+/ Function to fetch reply from LlaMA 7B endpoint
 async function fetchReply(text) {
   try {
     const apiUrl = `https://worker-dry-cloud-dorn.dorndickence.workers.dev/?prompt=${encodeURIComponent(text)}`;
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-    return data.reply;
+    const response = await axios.get(apiUrl);
+    return response.data.reply;
   } catch (error) {
     throw new Error(`Error fetching reply: ${error}`);
   }
 }
 
-// Message handler
+// Message handler for group messages
 smd({
   pattern: "gpt4",
   category: "ai",
@@ -337,16 +320,23 @@ smd({
   use: "<text>",
   filename: __filename,
 }, async (message, text, { cmdName, isGroup }) => {
-  if (!text) return message.reply(`*_Please provide a query_*\n*_Example ${isGroup ? `${prefix + cmdName}` : cmdName} What is the meaning of life?_*`);
+  // If in group and no prefix, ignore the message
+  if (isGroup && !text.startsWith(prefix + cmdName)) {
+    return;
+  }
+
+  // Remove prefix from text in groups
+  if (isGroup) {
+    text = text.slice((prefix + cmdName).length).trim();
+  }
+
+  if (!text) {
+    return message.reply(`*_Please provide a query_*\n*_Example: ${prefix + cmdName} What is the meaning of life?_*`);
+  }
 
   try {
     // Fetch reply from LlaMA 7B endpoint
     const reply = await fetchReply(text);
-
-    // Store previous message in MongoDB
-    const db = client.db('DornguruChats');
-    const messagesCollection = db.collection('messages');
-    await messagesCollection.insertOne({ userId: message.sender, message: text });
 
     // Send reply
     const astro = "ᴀsᴛᴀ ɢᴘᴛ𝟺\n";
@@ -357,6 +347,34 @@ smd({
   }
 });
 
+// Auto-reply to any private message
+smd({
+  category: "auto",
+  desc: "Auto-reply to private messages",
+  filename: __filename,
+}, async (message) => {
+  if (message.isGroup) {
+    return;
+  }
+
+  const text = message.text;
+
+  if (!text) {
+    return message.reply(`*_Please provide a query_*`);
+  }
+
+  try {
+    // Fetch reply from LlaMA 7B endpoint
+    const reply = await fetchReply(text);
+
+    // Send reply
+    const astro = "ᴀsᴛᴀ ɢᴘᴛ𝟺\n";
+    const tbl = "```";
+    await send(message, `${astro}${tbl}${reply}${tbl}`);
+  } catch (error) {
+    await message.error(`${error}`, error, `*_An error occurred while processing your request_*`);
+  }
+});
   
   smd({
     pattern: "gemini",
